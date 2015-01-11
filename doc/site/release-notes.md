@@ -42,6 +42,10 @@ change logs.
 h4 { margin-top:2em; }
 </style>
 
+#### 2015/1/10 hledger-web 0.24.1
+
+- add missing modules to fix cabal tests (#232)
+
 ## 2014/12/25 hledger 0.24
 
 Release contributors:
