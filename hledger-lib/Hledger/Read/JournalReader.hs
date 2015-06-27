@@ -54,12 +54,13 @@ import Prelude.Compat hiding (readFile)
 import qualified Control.Exception as C
 import Control.Monad.Compat
 import Control.Monad.Except (ExceptT(..), liftIO, runExceptT, throwError, catchError)
-import Data.Char (isNumber)
+import Data.Char (isNumber, isDigit)
 import Data.List.Compat
 import Data.List.Split (wordsBy)
 import Data.Maybe
 import Data.Time.Calendar
 import Data.Time.LocalTime
+-- import Data.Thyme.Time (fromThyme, fromGregorianValid)
 import Safe (headDef, lastDef)
 import Test.HUnit
 #ifdef TESTS
@@ -492,11 +493,90 @@ datep = do
               ([_,_],Nothing) -> fail $ "partial date "++datestr++" found, but the current year is unknown"
               ([y,m,d],_)     -> return [y,m,d]
               _               -> fail $ "bad date: " ++ datestr
-  let maybedate = fromGregorianValid (read y) (read m) (read d)
+  let -- (y',m',d') = (read y, read m, read d)
+      -- optimisation: use specialised read functions
+      (y',m',d') = (readyear y, readmonth m, readday d)
+      -- optimisation: skip fromGregorianValid for obviously valid dates
+      maybedate | m' >= 1 && m' <= 12 && d' >= 1 && d' <= 30 = Just $ fromGregorian y' m' d'
+                | otherwise                                  = fromGregorianValid y' m' d'
   case maybedate of
     Nothing   -> fail $ "bad date: " ++ datestr
     Just date -> return date
   <?> "full or partial date"
+  where
+    -- Read well-formed year/day/month numbers quickly (or return 0).
+    readyear :: String -> Integer
+    readyear s = 
+      case dropWhile (=='0') s of
+        cs@(_:_) | all isDigit cs -> foldl go 0 cs
+        _ -> 0
+      where
+        go n c =
+          case c of
+            '0' -> 0 + 10 * n
+            '1' -> 1 + 10 * n
+            '2' -> 2 + 10 * n
+            '3' -> 3 + 10 * n
+            '4' -> 4 + 10 * n
+            '5' -> 5 + 10 * n
+            '6' -> 6 + 10 * n
+            '7' -> 7 + 10 * n
+            '8' -> 8 + 10 * n
+            '9' -> 9 + 10 * n
+            _ -> error "readyear failed, this should not happen"
+
+    readmonth, readday :: String -> Int
+    readmonth s = 
+      case dropWhile (=='0') s of
+        "1" -> 1
+        "2" -> 2
+        "3" -> 3
+        "4" -> 4
+        "5" -> 5
+        "6" -> 6
+        "7" -> 7
+        "8" -> 8
+        "9" -> 9
+        "10" -> 10
+        "11" -> 11
+        "12" -> 12
+        _  -> 0
+
+    readday s = 
+      case dropWhile (=='0') s of
+        "1" -> 1
+        "2" -> 2
+        "3" -> 3
+        "4" -> 4
+        "5" -> 5
+        "6" -> 6
+        "7" -> 7
+        "8" -> 8
+        "9" -> 9
+        "10" -> 10
+        "11" -> 11
+        "12" -> 12
+        "13" -> 13
+        "14" -> 14
+        "15" -> 15
+        "16" -> 16
+        "17" -> 17
+        "18" -> 18
+        "19" -> 19
+        "20" -> 20
+        "21" -> 21
+        "22" -> 22
+        "23" -> 23
+        "24" -> 24
+        "25" -> 25
+        "26" -> 26
+        "27" -> 27
+        "28" -> 28
+        "29" -> 29
+        "30" -> 30
+        "31" -> 31
+        _  -> 0
+
 
 -- | Parse a date and time in YYYY/MM/DD HH:MM[:SS][+-ZZZZ] format.
 -- Hyphen (-) and period (.) are also allowed as date separators.
@@ -827,7 +907,11 @@ partialbalanceassertion =
 --           return $ Just $ Mixed [a])
 --          <|> return Nothing
 
--- http://ledger-cli.org/3.0/doc/ledger3.html#Fixing-Lot-Prices
+-- A ledger-style fixed lot price, see
+-- http://ledger-cli.org/3.0/doc/ledger3.html#Fixing-Lot-Prices.
+-- XXX Currently we don't use these and parsing the amount is slow
+-- (17% of parse time) for unclear reasons, so we don't bother parsing
+-- it accurately.
 fixedlotprice :: Stream [Char] m Char => ParsecT [Char] JournalContext m (Maybe Amount)
 fixedlotprice =
     try (do
@@ -836,9 +920,11 @@ fixedlotprice =
           many spacenonewline
           char '='
           many spacenonewline
-          a <- amountp -- XXX should restrict to a simple amount
-          many spacenonewline
-          char '}'
+          -- a <- amountp -- XXX should restrict to a simple amount
+          -- many spacenonewline
+          -- char '}'
+          let a = nullamt
+          anyChar `manyTill` char '}'
           return $ Just a)
          <|> return Nothing
 
