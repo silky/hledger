@@ -49,6 +49,7 @@ import Hledger.Data.Types
 import Hledger.Data.Journal (nullctx)
 import Hledger.Read.JournalReader as JournalReader
 import Hledger.Read.TimelogReader as TimelogReader
+import Hledger.Read.TimelogReaderPP as TimelogReaderPP
 import Hledger.Read.CsvReader as CsvReader
 import Hledger.Utils
 import Prelude hiding (getContents, writeFile)
@@ -65,6 +66,7 @@ readers :: [Reader]
 readers = [
   JournalReader.reader
  ,TimelogReader.reader
+ ,TimelogReaderPP.reader
  ,CsvReader.reader
  ]
 
@@ -241,6 +243,7 @@ tests_Hledger_Read = TestList $
   ++ [
    tests_Hledger_Read_JournalReader,
    tests_Hledger_Read_TimelogReader,
+   tests_Hledger_Read_TimelogReaderPP,
    tests_Hledger_Read_CsvReader,
 
    "journal" ~: do
