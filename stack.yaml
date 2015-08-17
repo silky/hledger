@@ -6,4 +6,6 @@ packages:
 flags: {}
 resolver: lts-3.0
 extra-deps:
+- brick-0.1
+- text-zipper-0.2.1
 - vty-5.3.1
